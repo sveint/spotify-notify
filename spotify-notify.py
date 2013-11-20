@@ -9,7 +9,7 @@
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 
-import gobject, gtk, os, tempfile, sys, time, re, indicate, urllib2
+import gobject, gtk, os, tempfile, sys, time, re, urllib2
 from optparse import OptionParser
 from subprocess import *
 
@@ -26,32 +26,32 @@ SPOTIFY_PROCESS_NAME = ''
 SPOTIFY_CLOSED_CHECK = 20000
 
 class SpotifyNotify():
-    
+
     spotifyPath = ''
-    
+
     tryToReconnect = False
-    
+
     tmpfile = False
-    
+
     def __init__(self, debugger):
         self.debug          = debugger
         self.spotifyservice = False
-        
+
         self.prev      = 0
         self.new       = False
         self.prevMeta  = {}
         self.notifyid  = 0
-        
+
         self.connect()
-    
+
     def __del__(self):
         if SpotifyNotify and SpotifyNotify.tmpfile:
             SpotifyNotify.tmpfile.close()
-    
+
     def connect(self):
         self.debug.out("Connecting to spotify.")
         self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
-        
+
         try:
             self.spotifyservice = self.bus.get_object(
                 'com.spotify.qt',
@@ -434,51 +434,43 @@ if __name__ == "__main__":
         default = False,
         help    = 'Debug messages will be displayed.'
     )
-    
+
     (options, args) = parser.parse_args()
-    
+
     Debug = DebugMe(options.debug)
     print("Spotify-notify v0.6")
-    
+
     if SPOTIFY_PROCESS_NAME:
         SpotifyNotify.spotifyPath = SPOTIFY_PROCESS_NAME
     else:
         for line in Popen('which spotify', shell=True, stdout=PIPE).stdout:
             SpotifyNotify.spotifyPath = str(line).strip()
             break
-    
+
     if options.skipSpotify:
         Debug.out('Skipping spotify process check.')
     else:
         SpotifyNotify.startSpotify(Debug)
-    
+
     DBusGMainLoop(set_as_default=True)
     SN = SpotifyNotify(Debug)
-    
+
     if options.action:
         action = options.action
         action = action[0:1].upper() + action[1:]
         SN.executeCommand(action)
         exit(0)
-    
+
     SpotifyNotify.preventDuplicate(Debug)
-    
+
     if not options.skipMediaKeys:
         MH = MediaKeyHandler(SN, Debug)
-    
-    try:
-        indicateserver = indicate.indicate_server_ref_default()
-        indicateserver.set_type("music.spotify")
-        indicateserver.set_desktop_file("/usr/share/applications/spotify.desktop")
-        indicateserver.show()
-    except:
-        pass
-    
+
     loop = gobject.MainLoop()
-    
+
     if not options.skipSpotify:
         gobject.timeout_add(SPOTIFY_CLOSED_CHECK, SN.checkForClosedSpotify, SN, Debug)
     if not options.skipNotify:
         gobject.timeout_add(500, SN.pollChange)
-    
+
     loop.run()
