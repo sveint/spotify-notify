@@ -62,16 +62,16 @@ class SpotifyNotify():
             self.spotifyservice = False
             self.debug.out("Failed to connect.")
             self.debug.out(e)
-    
+
     def executeCommand(self, key):
         if not key:
             return
-        
+
         self.connect()
         self.debug.out("Running command: {0}".format(key))
         self.cmd = self.spotifyservice.get_dbus_method(key, 'org.mpris.MediaPlayer2.Player')
         self.cmd()
-    
+
     def pollChange(self):
         try:
             self.spotifyservice = self.bus.get_object('com.spotify.qt', '/')
@@ -83,19 +83,19 @@ class SpotifyNotify():
         except Exception, e:
             self.debug.out('Spotify service not connected.')
             SpotifyNotify.tryToReconnect = True
-        
+
         if (self.prev != self.new):
             self.trackChange(self.new)
             self.prev = self.new
-        
+
         return 1
-    
+
     def trackChange(self, *trackChange):
         if not trackChange[0]:
             return
-        
+
         self.prev = trackChange[0]
-        
+
         trackInfo = {}
         trackMap  = {
             'artist'    : 'xesam:artist',
@@ -115,10 +115,10 @@ class SpotifyNotify():
                 piece = str(piece[:4])
             elif isinstance(piece, list):
                 piece = ", ".join(piece)
-            
+
             if not isinstance(piece, str):
                 piece = str(piece)
-            
+
             trackInfo[key] = piece.encode('utf-8')
 
         if not self.prevMeta\
@@ -126,7 +126,7 @@ class SpotifyNotify():
           or 'iconfilename' not in self.prevMeta\
           or self.prevMeta['artist'] != trackInfo['artist']\
           or self.prevMeta['album']  != trackInfo['album']:
-            trackInfo['iconfilename'] = self.retrieveCoverImage(trackInfo)       
+            trackInfo['iconfilename'] = self.retrieveCoverImage(trackInfo)
 
         cover_image = ''
 
@@ -138,9 +138,9 @@ class SpotifyNotify():
 
         if cover_image == '':
             cover_image = APPLICATION_DIR + 'icon_spotify.png'
-        
+
         self.prevMeta = trackInfo
-        
+
         # Connect to notification interface on DBUS.
         self.notifyservice = self.bus.get_object(
             'org.freedesktop.Notifications',
@@ -164,7 +164,7 @@ class SpotifyNotify():
             trackInfo['album'],
             trackInfo['year']
         )
-        
+
         # The second param is the replace id, so get the notify id back,
         # store it, and send it as the replacement on the next call.
         self.notifyid = self.notifyservice.Notify(
@@ -194,13 +194,13 @@ class SpotifyNotify():
                 trackInfo['trackhash']
             )
         return iconfilename
-    
+
     def fetchCoverImageSpotify(self, artist, album, trackhash):
         try:
             trackid = trackhash.split(":")[2]
             url = SPOTIFY_OPEN_URL + trackid
             tracksite = urllib2.urlopen(url).read()
-            
+
             # Attempt to get the image url from the open graph image meta tag.
             imageurl  = False
             metaMatch = re.search(
@@ -214,16 +214,16 @@ class SpotifyNotify():
                 )
                 if contentMatch:
                     imageurl = contentMatch.group(1)
-            
+
             if not imageurl:
                 self.debug.out("No cover available.")
                 raise()
-            
+
             return self.fetchCoverImage(imageurl)
         except Exception, e:
             self.debug.out("Couldn't fetch cover image.")
             self.debug.out(e)
-        
+
         return ''
 
     def fetchCoverImage(self, url):
@@ -231,12 +231,12 @@ class SpotifyNotify():
         if SpotifyNotify.tmpfile:
             SpotifyNotify.tmpfile.close()
             SpotifyNotify.tmpfile = False
-        
+
         try:
             SpotifyNotify.tmpfile = tempfile.NamedTemporaryFile()
             tmpfilename = SpotifyNotify.tmpfile.name
             self.debug.out("Album art tmp filepath: {0}".format(tmpfilename))
-            
+
             coverfile = urllib2.urlopen(url)
             SpotifyNotify.tmpfile.write(coverfile.read())
             SpotifyNotify.tmpfile.flush()
@@ -246,16 +246,16 @@ class SpotifyNotify():
             self.debug.out(e)
 
         return ''
-    
+
     @staticmethod
     def startSpotify(Debug):
         if not SpotifyNotify.spotifyPath:
             Debug.out("No spotify process identifier found.")
             return
-        
+
         ident = SpotifyNotify.spotifyPath
         Debug.out("Looking for spotify as: {0}".format(ident))
-        
+
         procs = SpotifyNotify.checkForProcess(
             'ps x | grep "{0}" | grep -v grep'.format(ident),
             Debug
@@ -263,81 +263,81 @@ class SpotifyNotify():
         if len(procs):
             Debug.out("Spotify process found as: {0}".format(" ".join(procs[0])))
             return
-        
+
         Debug.out("Starting new Spotify now.")
-        
+
         FNULL = open('/dev/null', 'w')
         spid = Popen([ident], stdout=FNULL, stderr=FNULL).pid
         if spid:
             Debug.out("Spotify started, pid: {0}.".format(spid))
         else:
             Debug.out("Spotify could not be started.")
-    
+
     @staticmethod
     def checkForClosedSpotify(SN, Debug):
         if not SpotifyNotify.spotifyPath:
             Debug.out("No spotify process identifier found.")
             return False
-        
+
         ident = SpotifyNotify.spotifyPath
         Debug.out("Looking for spotify as: {0}".format(ident))
-        
+
         procs = SpotifyNotify.checkForProcess(
             'ps x | grep "{0}" | grep -v grep'.format(ident),
             Debug
         )
         if len(procs):
             Debug.out("Spotify process found as: {0}".format(" ".join(procs[0])))
-            
+
             if (SpotifyNotify.tryToReconnect):
                 SN.connect()
-            
+
             return True
-        
+
         if SpotifyNotify.tmpfile:
             SpotifyNotify.tmpfile.close()
-        
+
         Debug.out("Spotify has been closed, therefore I die.")
         exit(0)
-    
+
     @staticmethod
     def preventDuplicate(Debug):
         mypid = os.getpid()
         Debug.out("My pid: {0}".format(mypid))
-        
+
         proc = SpotifyNotify.checkForProcess('ps -p {0}'.format(mypid), Debug)
         if not proc[0][3]:
             return
-        
+
         process = proc[0][3]
         search  = 'ps -C {0}'.format(process)
-        
+
         Debug.out("Looking for other processes named: {0}".format(process).strip())
-        
+
         if process == 'python':
             if not sys.argv[0]:
                 Debug.out("Process started using python, cannot determine script name.")
                 return
-            
+
             search = 'ps ax | grep "python {0}" | grep -v grep'.format(sys.argv[0])
-        
+
         for line in SpotifyNotify.checkForProcess(search, Debug):
             if int(line[0]) != mypid:
                 print("This program was already running.")
                 Debug.out("I am a duplicate. I shall end myself. ({0})".format(" ".join(line)))
                 exit(0)
-    
+
     @staticmethod
     def checkForProcess(proc, Debug):
         output = []
-        
+
         for line in Popen(proc, shell=True, stdout=PIPE).stdout:
             fields = line.split()
             if not fields[0].isdigit():
                 continue
-            
+
             output.append(fields)
-        
+
         return output
 
 class MediaKeyHandler():
@@ -351,7 +351,7 @@ class MediaKeyHandler():
             "Next"     : "Next",
             "Previous" : "Previous",
         }
-        
+
         self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
         self.bus_object = self.bus.get_object(
             'org.gnome.SettingsDaemon',
@@ -365,17 +365,17 @@ class MediaKeyHandler():
             )
         except:
             pass
-        
+
         self.bus_object.connect_to_signal(
             'MediaPlayerKeyPressed',
             self.handle_mediakey
         )
-    
+
     def handle_mediakey(self, *mmkeys):
         for key in mmkeys:
             if not key in self.keys or not self.keys[key]:
                 continue
-            
+
             self.SN.executeCommand(self.keys[key])
 
 class DebugMe():
@@ -384,11 +384,11 @@ class DebugMe():
             self.output = True
         else:
             self.output = False
-    
+
     def out(self, msg):
         if not self.output:
             return
-        
+
         print(">> {0}".format(msg))
 
 if __name__ == "__main__":
