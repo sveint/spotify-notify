@@ -352,11 +352,15 @@ class MediaKeyHandler():
             "Previous" : "Previous",
         }
 
-        self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
-        self.bus_object = self.bus.get_object(
-            'org.gnome.SettingsDaemon',
-            '/org/gnome/SettingsDaemon/MediaKeys'
-        )
+        try:
+            self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
+            self.bus_object = self.bus.get_object(
+                'org.gnome.SettingsDaemon',
+                '/org/gnome/SettingsDaemon/MediaKeys'
+            )
+        except:
+            print "Gnome SettingsDaemon not founnd, multimedia keys will not interact with spotify"
+            return
         try:
             self.bus_object.GrabMediaPlayerKeys(
                 "Spotify",
