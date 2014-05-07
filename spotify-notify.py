@@ -175,7 +175,7 @@ class SpotifyNotify():
             notifyText,
             [],
             {},
-            2
+            -1
         )
 
     def retrieveCoverImage(self, trackInfo):
