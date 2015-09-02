@@ -151,7 +151,7 @@ class SpotifyNotify():
             "org.freedesktop.Notifications"
         )
         notifyText = "{0}\n{1}".format(
-            trackInfo['title'],
+            trackInfo['artist'],
             trackInfo['album']
         )
         if len(trackInfo['year']) > 0:
@@ -171,7 +171,7 @@ class SpotifyNotify():
             "Spotify-notify",
             self.notifyid,
             cover_image,
-            trackInfo['artist'],
+            trackInfo['title'],
             notifyText,
             [],
             {},
