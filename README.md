@@ -1,6 +1,9 @@
 spotify-notify
 ==============
 
+### Note: Spotify for Linux now supports notifications and media keys natively, making this script redundant.
+
+
 Spotify-notify is a __notifier for currently playing song__ in Spotify on a linux system, using the notify-osd notifier (found in e.g. Ubuntu). It also includess __support for media keys__. It is intended for use on Ubuntu systems - current dependency is notify-osd.
 
 ![Example image](https://dl.dropbox.com/u/100344/spotifynotify2.png)
